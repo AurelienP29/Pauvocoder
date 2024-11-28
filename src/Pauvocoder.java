@@ -60,6 +60,11 @@ public class Pauvocoder {
      */
     public static double[] resample(double[] inputWav, double freqScale) {
         if (freqScale > 1) {
+            double newSampleLeft = 1 - ((freqScale - 1) / freqScale);
+            double[] resampledWav = new double[(int)(inputWav.length * newSampleLeft)];
+
+            // Compteur d'un saut de séquence pour laisser passer les valeurs au dessus, puis reboucler le compteur dans le for
+
 
         } else if (freqScale < 1) {
 
