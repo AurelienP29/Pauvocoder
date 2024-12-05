@@ -29,7 +29,7 @@ public class Pauvocoder {
         double[] newPitchWav = resample(inputWav, freqScale);
         StdAudio.save(outPutFile+"Resampled.wav", newPitchWav);
 
-        // Simple dilatation
+        /*// Simple dilatation
         double[] outputWav   = vocodeSimple(newPitchWav, 1.0/freqScale);
         StdAudio.save(outPutFile+"Simple.wav", outputWav);
 
@@ -48,7 +48,7 @@ public class Pauvocoder {
         StdAudio.save(outPutFile+"SimpleOverCrossEcho.wav", outputWav);
 
         // Display waveform
-        displayWaveform(outputWav);
+        displayWaveform(outputWav);*/
 
     }
 
@@ -60,21 +60,54 @@ public class Pauvocoder {
      */
     public static double[] resample(double[] inputWav, double freqScale) {
         if (freqScale > 1) {
-            double newSampleLeft = 1 - ((freqScale - 1) / freqScale);
+            double newSampleLeft = 1 - ((freqScale - 1) / freqScale); // 1.5freq => 0.66666666 left
             double[] resampledWav = new double[(int)(inputWav.length * newSampleLeft)];
 
+            int forLimit = (int)(newSampleLeft * 100);
+            int forStep = 0;
+            int currentCounter = 0;
+
             // Compteur d'un saut de séquence pour laisser passer les valeurs au dessus, puis reboucler le compteur dans le for
+            for (int i = 0; i < inputWav.length - 1; i++){
+                if (forStep <= forLimit){
+                    resampledWav[currentCounter] = inputWav[i];
+                    currentCounter++;
+                }
 
-
+                if (forStep == 100){
+                    forStep = 0;
+                }
+                forStep++;
+            }
+            return resampledWav;
         } else if (freqScale < 1) {
+            double newSampleAdded = 1 + ((1 - freqScale) / freqScale); // 0.5freq => 2 added
+            double[] resampledWav = new double[(int)(inputWav.length * newSampleAdded)];
 
+            int forLimit = (int)(newSampleAdded * 100);
+            int forStep = 0;
+            int currentCounter = 0;
+
+            // Compteur d'un saut de séquence pour laisser passer les valeurs au dessus, puis reboucler le compteur dans le for
+            for (int i = 0; i < inputWav.length - 1; i++){
+                if (forStep <= forLimit){
+                    resampledWav[currentCounter] = inputWav[i];
+                    currentCounter++;
+                }
+
+                if (forStep == 100){
+                    forStep = 0;
+                }
+                forStep++;
+            }
+            return resampledWav;
         } else {
             return inputWav;
         }
 
 
 
-        throw new UnsupportedOperationException("Not implemented yet");
+        /*throw new UnsupportedOperationException("Not implemented yet");*/
     }
 
     /**
