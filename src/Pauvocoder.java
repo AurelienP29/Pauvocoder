@@ -60,54 +60,28 @@ public class Pauvocoder {
      */
     public static double[] resample(double[] inputWav, double freqScale) {
         if (freqScale > 1) {
-            double newSampleLeft = 1 - ((freqScale - 1) / freqScale); // 1.5freq => 0.66666666 left
-            double[] resampledWav = new double[(int)(inputWav.length * newSampleLeft)];
+            double substractSample = (freqScale - 1) / freqScale;
+            int seqSkip = (int)(substractSample * SEQUENCE); // Taille de sequence ignoré
+            double[] newWav = new double[inputWav.length - (seqSkip * 10)]; // Nouveau tableau, de la taille de toutes les sequences sauté
+            int inputCounter = 0, newCounter = 0;
 
-            int forLimit = (int)(newSampleLeft * 100);
-            int forStep = 0;
-            int currentCounter = 0;
-
-            // Compteur d'un saut de séquence pour laisser passer les valeurs au dessus, puis reboucler le compteur dans le for
-            for (int i = 0; i < inputWav.length - 1; i++){
-                if (forStep <= forLimit){
-                    resampledWav[currentCounter] = inputWav[i];
-                    currentCounter++;
+            while (inputCounter < inputWav.length && newCounter < newWav.length){
+                // Copie la sequence actuelle
+                for (int i = 0; i < SEQUENCE && inputCounter < inputWav.length && newCounter < newWav.length; i++) {
+                    newWav[newCounter] = inputWav[inputCounter];
+                    inputCounter++;
+                    newCounter++;
                 }
-
-                if (forStep == 100){
-                    forStep = 0;
-                }
-                forStep++;
+                // Saute l'interval
+                inputCounter += seqSkip;
             }
-            return resampledWav;
+            return newWav;
         } else if (freqScale < 1) {
-            double newSampleAdded = 1 + ((1 - freqScale) / freqScale); // 0.5freq => 2 added
-            double[] resampledWav = new double[(int)(inputWav.length * newSampleAdded)];
-
-            int forLimit = (int)(newSampleAdded * 100);
-            int forStep = 0;
-            int currentCounter = 0;
-
-            // Compteur d'un saut de séquence pour laisser passer les valeurs au dessus, puis reboucler le compteur dans le for
-            for (int i = 0; i < inputWav.length - 1; i++){
-                if (forStep <= forLimit){
-                    resampledWav[currentCounter] = inputWav[i];
-                    currentCounter++;
-                }
-
-                if (forStep == 100){
-                    forStep = 0;
-                }
-                forStep++;
-            }
-            return resampledWav;
+            return inputWav;
         } else {
             return inputWav;
         }
 
-
-
-        /*throw new UnsupportedOperationException("Not implemented yet");*/
     }
 
     /**
