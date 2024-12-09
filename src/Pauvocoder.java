@@ -62,12 +62,13 @@ public class Pauvocoder {
         if (freqScale > 1) {
             double substractSample = (freqScale - 1) / freqScale;
             int seqSkip = (int)(substractSample * SEQUENCE); // Taille de sequence ignoré
-            double[] newWav = new double[inputWav.length - (seqSkip * 10)]; // Nouveau tableau, de la taille de toutes les sequences sauté
+            int seqRead = SEQUENCE - seqSkip; // Taille de sequence lu
+            double[] newWav = new double[(int)(inputWav.length - (inputWav.length * substractSample))]; // Nouveau tableau, de la taille de toutes les sequences sans les sauté
             int inputCounter = 0, newCounter = 0;
 
             while (inputCounter < inputWav.length && newCounter < newWav.length){
                 // Copie la sequence actuelle
-                for (int i = 0; i < SEQUENCE && inputCounter < inputWav.length && newCounter < newWav.length; i++) {
+                for (int i = 0; i < seqRead && inputCounter < inputWav.length && newCounter < newWav.length; i++) {
                     newWav[newCounter] = inputWav[inputCounter];
                     inputCounter++;
                     newCounter++;
@@ -77,7 +78,23 @@ public class Pauvocoder {
             }
             return newWav;
         } else if (freqScale < 1) {
-            return inputWav;
+            double addedSample = (1 - freqScale) / freqScale;
+            int seqAdded = (int)(addedSample * SEQUENCE); // Taille de sequence ajouté
+            int seqRead = SEQUENCE + seqAdded; // Taille de sequence lu
+            double[] newWav = new double[(int)(inputWav.length + (inputWav.length * addedSample))]; // Nouveau tableau, de la taille de toutes les sequences plus les ajouté
+            int inputCounter = 0, newCounter = 0;
+
+            while (inputCounter < inputWav.length && newCounter < newWav.length){
+                // Copie la sequence actuelle
+                for (int i = 0; i < seqRead && inputCounter < inputWav.length && newCounter < newWav.length; i++) {
+                    newWav[newCounter] = inputWav[inputCounter];
+                    inputCounter++;
+                    newCounter++;
+                }
+                // Reviens en arrière
+                inputCounter -= seqAdded;
+            }
+            return newWav;
         } else {
             return inputWav;
         }
