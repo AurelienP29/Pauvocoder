@@ -1,4 +1,5 @@
 import static java.lang.System.exit;
+import static java.lang.System.in;
 
 public class Pauvocoder {
 
@@ -29,26 +30,26 @@ public class Pauvocoder {
         double[] newPitchWav = resample(inputWav, freqScale);
         StdAudio.save(outPutFile+"Resampled.wav", newPitchWav);
 
-        /*// Simple dilatation
+        // Simple dilatation
         double[] outputWav   = vocodeSimple(newPitchWav, 1.0/freqScale);
         StdAudio.save(outPutFile+"Simple.wav", outputWav);
 
         // Simple dilatation with overlaping
-        outputWav = vocodeSimpleOver(newPitchWav, 1.0/freqScale);
-        StdAudio.save(outPutFile+"SimpleOver.wav", outputWav);
+        /*outputWav = vocodeSimpleOver(newPitchWav, 1.0/freqScale);
+        StdAudio.save(outPutFile+"SimpleOver.wav", outputWav);*/
 
         // Simple dilatation with overlaping and maximum cross correlation search
-        outputWav = vocodeSimpleOverCross(newPitchWav, 1.0/freqScale);
+        /*outputWav = vocodeSimpleOverCross(newPitchWav, 1.0/freqScale);
         StdAudio.save(outPutFile+"SimpleOverCross.wav", outputWav);
 
-        joue(outputWav);
+        joue(outputWav);*/
 
         // Some echo above all
-        outputWav = echo(outputWav, 100, 0.7);
+        outputWav = echo(inputWav, 1000, 0.7);
         StdAudio.save(outPutFile+"SimpleOverCrossEcho.wav", outputWav);
 
         // Display waveform
-        displayWaveform(outputWav);*/
+        /*displayWaveform(outputWav);*/
 
     }
 
@@ -59,45 +60,31 @@ public class Pauvocoder {
      * @return resampled wav
      */
     public static double[] resample(double[] inputWav, double freqScale) {
+        double[] newWav;
+
         if (freqScale > 1) {
             double substractSample = (freqScale - 1) / freqScale;
-            int seqSkip = (int)(substractSample * SEQUENCE); // Taille de sequence ignoré
-            int seqRead = SEQUENCE - seqSkip; // Taille de sequence lu
-            double[] newWav = new double[(int)(inputWav.length - (inputWav.length * substractSample))]; // Nouveau tableau, de la taille de toutes les sequences sans les sauté
-            int inputCounter = 0, newCounter = 0;
+            newWav = new double[(int)(inputWav.length - (inputWav.length * substractSample))]; // Nouveau tableau, de la taille de toutes les sequences sans les sauté
 
-            while (inputCounter < inputWav.length && newCounter < newWav.length){
-                // Copie la sequence actuelle
-                for (int i = 0; i < seqRead && inputCounter < inputWav.length && newCounter < newWav.length; i++) {
-                    newWav[newCounter] = inputWav[inputCounter];
-                    inputCounter++;
-                    newCounter++;
-                }
-                // Saute l'interval
-                inputCounter += seqSkip;
-            }
-            return newWav;
         } else if (freqScale < 1) {
             double addedSample = (1 - freqScale) / freqScale;
-            int seqAdded = (int)(addedSample * SEQUENCE); // Taille de sequence ajouté
-            int seqRead = SEQUENCE + seqAdded; // Taille de sequence lu
-            double[] newWav = new double[(int)(inputWav.length + (inputWav.length * addedSample))]; // Nouveau tableau, de la taille de toutes les sequences plus les ajouté
-            int inputCounter = 0, newCounter = 0;
+            newWav = new double[(int)(inputWav.length + (inputWav.length * addedSample))]; // Nouveau tableau, de la taille de toutes les sequences sans les sauté
 
-            while (inputCounter < inputWav.length && newCounter < newWav.length){
-                // Copie la sequence actuelle
-                for (int i = 0; i < seqRead && inputCounter < inputWav.length && newCounter < newWav.length; i++) {
-                    newWav[newCounter] = inputWav[inputCounter];
-                    inputCounter++;
-                    newCounter++;
-                }
-                // Reviens en arrière
-                inputCounter -= seqAdded;
-            }
-            return newWav;
         } else {
-            return inputWav;
+            newWav = new double[inputWav.length];
         }
+
+        double inputCounter = 0;
+        int newCounter = 0;
+
+        while (inputCounter < inputWav.length && newCounter < newWav.length){
+            newWav[newCounter] = inputWav[(int)(inputCounter)];
+
+            newCounter++;
+            inputCounter += freqScale;
+        }
+
+        return newWav;
 
     }
 
@@ -108,7 +95,42 @@ public class Pauvocoder {
      * @return dilated wav
      */
     public static double[] vocodeSimple(double[] inputWav, double dilatation) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        int seqJump = (int)(dilatation * SEQUENCE); // Taille du saut (illustration représentative)
+        double[] newWav = new double[(int)(inputWav.length / dilatation)]; // Nouveau tableau de la bonne taille
+        int inputCounter = 0, newCounter = 0;
+
+        if (dilatation < 1) {
+            int seqAdded = SEQUENCE - seqJump; // Taille de sequence ajouté
+
+            while (inputCounter < inputWav.length && newCounter < newWav.length){
+                // Copie la sequence actuelle
+                for (int i = 0; i < SEQUENCE && inputCounter < inputWav.length && newCounter < newWav.length; i++) {
+                    newWav[newCounter] = inputWav[inputCounter];
+                    inputCounter++;
+                    newCounter++;
+                }
+                // Reviens en arrière
+                inputCounter -= seqAdded;
+            }
+            return newWav;
+
+        } else if (dilatation > 1) {
+            int seqRemoved = seqJump - SEQUENCE; // Taille de sequence supprimé
+
+            while (inputCounter < inputWav.length && newCounter < newWav.length){
+                // Copie la sequence actuelle
+                for (int i = 0; i < SEQUENCE && inputCounter < inputWav.length && newCounter < newWav.length; i++) {
+                    newWav[newCounter] = inputWav[inputCounter];
+                    inputCounter++;
+                    newCounter++;
+                }
+                // Saute l'interval
+                inputCounter += seqRemoved;
+            }
+            return newWav;
+        } else {
+            return inputWav;
+        }
     }
 
     /**
@@ -147,7 +169,26 @@ public class Pauvocoder {
      * @return wav with echo
      */
     public static double[] echo(double[] wav, double delay, double gain) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (gain < -1 || gain > 1) {
+            throw new IllegalArgumentException("Gain must be between -1 and 1");
+        }
+
+
+        int delaySamples = (int) Math.round(delay*10);
+        double[] echoedWav = new double[wav.length + delaySamples];
+
+        for (int i = 0; i < wav.length; i++) {
+            echoedWav[i] = wav[i];
+        }
+
+        for (int i = 0; i < wav.length; i++) {
+            int echoIndex = i + delaySamples;
+            if (echoIndex < echoedWav.length) {
+                echoedWav[echoIndex] += wav[i] * gain;
+            }
+        }
+
+        return echoedWav;
     }
 
     /**
