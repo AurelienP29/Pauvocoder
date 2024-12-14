@@ -35,8 +35,8 @@ public class Pauvocoder {
         StdAudio.save(outPutFile+"Simple.wav", outputWav);
 
         // Simple dilatation with overlaping
-        /*outputWav = vocodeSimpleOver(newPitchWav, 1.0/freqScale);
-        StdAudio.save(outPutFile+"SimpleOver.wav", outputWav);*/
+        outputWav = vocodeSimpleOver(newPitchWav, 1.0/freqScale);
+        StdAudio.save(outPutFile+"SimpleOver.wav", outputWav);
 
         // Simple dilatation with overlaping and maximum cross correlation search
         /*outputWav = vocodeSimpleOverCross(newPitchWav, 1.0/freqScale);
@@ -45,7 +45,7 @@ public class Pauvocoder {
         joue(outputWav);*/
 
         // Some echo above all
-        outputWav = echo(inputWav, 1000, 0.7);
+        outputWav = echo(outputWav, 100, 0.7);
         StdAudio.save(outPutFile+"SimpleOverCrossEcho.wav", outputWav);
 
         // Display waveform
@@ -115,7 +115,7 @@ public class Pauvocoder {
             return newWav;
 
         } else if (dilatation > 1) {
-            int seqRemoved = seqJump - SEQUENCE; // Taille de sequence supprimé
+            int seqRemoved = (seqJump - SEQUENCE); // Taille de sequence supprimé
 
             while (inputCounter < inputWav.length && newCounter < newWav.length){
                 // Copie la sequence actuelle
@@ -140,7 +140,101 @@ public class Pauvocoder {
      * @return dilated wav
      */
     public static double[] vocodeSimpleOver(double[] inputWav, double dilatation) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        int seqJump = (int)(dilatation * SEQUENCE); // Taille du saut (illustration représentative)
+        int subSeq = SEQUENCE - OVERLAP;
+        double attenuation = 1.0 / OVERLAP;
+        double[] newWav = new double[(int)(inputWav.length / dilatation)]; // Nouveau tableau de la bonne taille
+
+        int inputCounter = 0, newCounter = 0;
+        int currentSeq = 0;
+        boolean firstSeq = true;
+
+        if (dilatation < 1) {
+            int seqAdded = SEQUENCE - seqJump; // Taille de sequence ajouté
+
+            while (inputCounter < inputWav.length && newCounter < newWav.length){
+                while (currentSeq < subSeq && inputCounter < inputWav.length && newCounter < newWav.length){
+
+                    if (currentSeq < OVERLAP){
+                        if (newWav[newCounter] == 0){
+                            newWav[newCounter] = inputWav[inputCounter] * (attenuation * currentSeq);
+                        } else {
+                            double addition = (newWav[newCounter] + (inputWav[inputCounter] * (attenuation * currentSeq)));
+                            newWav[newCounter] = addition;
+                        }
+
+                    } else {
+                        newWav[newCounter] = inputWav[inputCounter];
+                    }
+
+                    currentSeq++;
+                    newCounter++;
+                    inputCounter++;
+                }
+
+                for(int i = OVERLAP; i > 0 && inputCounter < inputWav.length && newCounter < newWav.length; i --){
+                    newWav[newCounter] = inputWav[inputCounter] * (attenuation * i);
+
+                    newCounter++;
+                    inputCounter++;
+                }
+
+                if (firstSeq){
+                    firstSeq = false;
+                    newCounter -= OVERLAP;
+                }
+
+                inputCounter -= seqAdded;
+                currentSeq = 0;
+
+            }
+            return newWav;
+
+
+        } else if (dilatation > 1) {
+            int seqRemoved = seqJump - SEQUENCE; // Taille de sequence supprimé
+
+            while (inputCounter < inputWav.length && newCounter < newWav.length){
+                while (currentSeq < subSeq && inputCounter < inputWav.length && newCounter < newWav.length){
+
+                    if (currentSeq < OVERLAP){
+                        if (newWav[newCounter] == 0){
+                            newWav[newCounter] = inputWav[inputCounter] * (attenuation * currentSeq);
+                        } else {
+                            double addition = (newWav[newCounter] + (inputWav[inputCounter] * (attenuation * currentSeq)));
+                            newWav[newCounter] = addition;
+                        }
+
+                    } else {
+                        newWav[newCounter] = inputWav[inputCounter];
+                    }
+
+                    currentSeq++;
+                    newCounter++;
+                    inputCounter++;
+                }
+
+                for(int i = OVERLAP; i > 0 && inputCounter < inputWav.length && newCounter < newWav.length; i --){
+                    newWav[newCounter] = inputWav[inputCounter] * (attenuation * i);
+
+                    newCounter++;
+                    inputCounter++;
+                }
+
+                if (firstSeq){
+                    firstSeq = false;
+                    newCounter -= OVERLAP;
+                }
+
+                inputCounter += seqRemoved;
+                currentSeq = 0;
+
+            }
+            return newWav;
+
+        } else {
+            return inputWav;
+        }
     }
 
     /**
